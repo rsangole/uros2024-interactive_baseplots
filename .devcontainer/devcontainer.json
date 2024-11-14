@@ -1,0 +1,25 @@
+{
+  "image": "hatmatrix/tslabeler:latest",
+  "mounts": [
+    "source=${localEnv:RENV_PATHS_CACHE},target=/root/renv/cache,type=bind,consistency=cache"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "quarto.quarto",
+        "REditorSupport.r",
+        "ms-python.python",
+        "aaron-bond.better-comments",
+        "mikestead.dotenv",
+        "DavidAnson.vscode-markdownlint",
+        "ms-azuretools.vscode-docker",
+        "RDebugger.r-debugger",
+        "Posit.shiny"
+      ]
+    }
+  },
+  "remoteEnv": {
+    "RENV_PATHS_CACHE": "/root/renv/cache"
+  },
+  "postCreateCommand": "bash"
+}

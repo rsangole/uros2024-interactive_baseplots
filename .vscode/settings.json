@@ -1,0 +1,70 @@
+{
+  // R setup
+  "r.alwaysUseActiveTerminal": false, // depending on your workflow
+  "r.rterm.linux": "/root/.local/bin/radian",
+  "r.rterm.mac": "/Users/rahul/.local/bin/radian",
+  "r.plot.useHttpgd": true,
+  "[r]": {
+    "editor.formatOnPaste": true, // recommended
+    "editor.formatOnType": true, // recommended
+    "editor.formatOnSave": true,
+    "diffEditor.ignoreTrimWhitespace": false,
+    "files.autoSave": "off",
+    "editor.defaultFormatter": "REditorSupport.r",
+    "editor.wordSeparators": "`~!@#%$^&*()-=+[{]}\\|;:'\",<>/?" // Treat names.like.this as one word for selection.
+  },
+  "[rmd]": {
+    "editor.defaultFormatter": "REditorSupport.r",
+    "editor.formatOnSave": true
+  },
+  "files.associations": {
+    // required
+    "*.rmd": "markdown",
+    "*.Rmd": "rmd"
+  },
+  "r.bracketedPaste": true,
+  "r.lsp.enabled": true,
+  "r.lsp.diagnostics": false,
+  "r.session.levelOfObjectDetail": "Normal",
+  "r.session.viewers.viewColumn": {
+    "plot": "Beside",
+    "browser": "Beside",
+    "viewer": "Two",
+    "pageViewer": "Active",
+    "view": "Beside",
+    "helpPanel": "Beside"
+  },
+  "shiny.r.devmode": false,
+  "shiny.r.port": 3434,
+  // Python
+  // "python.defaultInterpreterPath": "/usr/local/bin/python3", // Check your python path, if exists in your Docker image
+  // "jupyter.interactiveWindowMode": "perFile",
+  // VSCode setup
+  // "path-autocomplete.pathMappings": {
+  //   "/": "/",
+  //   "./": "${folder}"
+  // },
+  "editor.suggestSelection": "recentlyUsedByPrefix",
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": true,
+  "diffEditor.ignoreTrimWhitespace": true,
+  "search.showLineNumbers": true,
+  "terminal.integrated.sendKeybindingsToShell": true,
+  "editor.minimap.renderCharacters": false,
+  "editor.minimap.scale": 1,
+  "editor.minimap.showSlider": "always",
+  "vim.highlightedyank.enable": true,
+  "vim.smartRelativeLine": true,
+  "codelm.codelmBehavior.F-SuggestCompletionsEverywhere": true,
+  "codelm.userdata.B-GithubUserName": "rsangole",
+  "codelm.userdata.D-HighlightTrackedCompletions": false,
+  "r.lsp.promptToInstall": false
+  // Additional Optional Settings
+  // "workbench.startupEditor":"none",
+  // "workbench.iconTheme": "VSCode Great Icons", // optional
+  // "workbench.colorTheme": "Visual Studio Light", // optional
+  // "diffEditor.ignoreTrimWhitespace": false, // optional
+  // "explorer.confirmDragAndDrop": false,
+  // "explorer.confirmDelete": false, // optional
+}
