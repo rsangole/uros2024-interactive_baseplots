@@ -39,7 +39,7 @@ ts_plotter <- function(
         xlab = "",
         ylab = "",
         yaxt = "n",
-        col = colors[1]
+        col = colors[10]
     )
 
     y_at <- pretty(dat$value)
