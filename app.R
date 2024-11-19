@@ -14,7 +14,7 @@ ui <- navbarPage(
     "The Basics",
     nav_panel(
       "Basic Plots",
-      basics_UI("basic")
+      # basics_UI("basic")
     ),
     tabPanel("Box Select"),
     tabPanel("Range Select")
@@ -44,7 +44,7 @@ ui <- navbarPage(
 )
 
 server <- function(input, output, session) {
-  basics_server("basic")
+  # basics_server("basic")
   ts_server("ts")
 }
 

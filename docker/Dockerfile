@@ -2,7 +2,8 @@ FROM rocker/shiny-verse:latest
 
 # Install pipx
 RUN apt-get update && apt-get install -y \
-    pipx && \
+    pipx \
+    git && \
     pipx ensurepath
 
 # Install radian

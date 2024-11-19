@@ -41,7 +41,13 @@
     },
     "fs": {
       "Package": "fs",
-      "Version": "1.6.4",
+      "Version": "1.6.5",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "here": {
+      "Package": "here",
+      "Version": "1.0.1",
       "Source": "Repository",
       "Repository": "CRAN"
     },
@@ -66,6 +72,12 @@
     "plotly": {
       "Package": "plotly",
       "Version": "4.10.4",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "qs2": {
+      "Package": "qs2",
+      "Version": "0.1.1",
       "Source": "Repository",
       "Repository": "CRAN"
     },

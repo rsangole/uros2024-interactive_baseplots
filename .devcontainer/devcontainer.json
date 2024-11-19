@@ -9,12 +9,10 @@
         "quarto.quarto",
         "REditorSupport.r",
         "ms-python.python",
-        "aaron-bond.better-comments",
-        "mikestead.dotenv",
-        "DavidAnson.vscode-markdownlint",
         "ms-azuretools.vscode-docker",
         "RDebugger.r-debugger",
-        "Posit.shiny"
+        "Posit.shiny",
+        "mhutchie.git-graph"
       ]
     }
   },
