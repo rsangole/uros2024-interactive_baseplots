@@ -84,14 +84,58 @@ navmenu_fundamentals <- function() {
                             max_height = 700
                         ),
                         em("36,278 Exoplanets discovered from 2013-2024"),
-                        em("Source: NASA Exoplanet Archive")
+                        em("Source: NASA Exoplanet Archive"),
+                        shinyWidgets::prettyCheckbox("show_bg", "Show Starmap", FALSE)
                     ),
                     card(code("str(input$exoplanets_dblclick)"), verbatimTextOutput("exoplanets_dblclick_info"))
                 )
             )
         ),
         nav_panel(
-            "Connect back..."
+            "Data lookup",
+            fluidPage(
+                inputPanel(
+                    sliderInput("max_distance", "Max distance (pixels)",
+                        min = 1, max = 20, value = 5, step = 1, ticks = FALSE
+                    ),
+                    sliderInput("max_points", "Max rows",
+                        min = 1, max = 100, value = 100, step = 1, ticks = FALSE
+                    )
+                ),
+                fluidRow(
+                    shiny::column(
+                        width = 4,
+                        plotOutput(
+                            outputId = "lookup_plot",
+                            height = 300,
+                            click = clickOpts(id = "lookup_click"),
+                            dblclick = dblclickOpts(id = "lookup_dblclick"),
+                            hover = hoverOpts(id = "lookup_hover"),
+                            brush = brushOpts(id = "lookup_brush")
+                        )
+                    ),
+                    shiny::column(
+                        width = 4,
+                        uiOutput("lookup_click_UIcode"), # , fill = FALSE),
+                    ),
+                    column(
+                        width = 4,
+                        uiOutput("lookup_brush_UIcode") # , fill = FALSE)
+                    )
+                ),
+                fluidRow(
+                    navset_tab(
+                        nav_panel(
+                            title = "Clicked Points",
+                            card(reactable::reactableOutput("table_clicked_points"))
+                        ),
+                        nav_panel(
+                            title = "Brushed Points",
+                            card(reactable::reactableOutput("table_brushed_points"))
+                        )
+                    )
+                )
+            )
         )
     )
 }

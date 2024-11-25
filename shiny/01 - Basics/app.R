@@ -4,26 +4,67 @@ library(bslib)
 library(dplyr)
 library(ggplot2)
 
+# Load code ----
+message("loading code")
 lapply(fs::dir_ls(here::here("shiny/01 - Basics/R")), source)
 
+# Load data ----
+message("loading data")
 meteorites <- data.table::fread(here::here("data/Meteorite_Landings_20241116.csv")) |>
     janitor::clean_names() |>
     dplyr::arrange(mass_g)
 comets <- data.table::fread(here::here("data/comets.csv")) |>
     janitor::clean_names()
-exoplanets <- qs2::qs_read(here::here("data/exoplanets.qs2"))
+exoplanets <- qs2::qs_read(here::here("data/exoplanets.qs2")) |>
+    mutate(
+        ra_h = as.numeric(stringr::str_extract(rastr, "\\d{2}(?=h)")),
+        ra_m = as.numeric(stringr::str_extract(rastr, "\\d{2}(?=m)")),
+        ra_s = as.numeric(stringr::str_extract(rastr, "\\d{2}\\.\\d{1,4}(?=s)")),
+        ra_hms = sprintf("%s:%s:%s", ra_h, ra_m, ra_s),
+        ra_xaxis = ra - 180
+    ) |>
+    arrange(ra_h, ra_m, ra_s) |>
+    dplyr::filter(
+        discoverymethod %in% c("Transit", "Radial Velocity", "Microlensing")
+    )
+image <- jpeg::readJPEG(here::here("shiny/01 - Basics/images/starmap_2020_4k_print.jpg"))
 
 
 # UI ----
+message("loading UI")
 ui <- navbarPage(
     "Interactivity with Base R",
     tabPanel("Intro"),
     tabPanel("Motivation"),
-    navmenu_fundamentals()
+    navmenu_fundamentals(),
+    navbarMenu(
+        "In Action",
+        nav_panel(
+            title = "Time-series Analysis",
+            ts_UI("ts")
+        ),
+        nav_panel(
+            "Scatter",
+            scatter_UI("scatter")
+        )
+    )
+    # navbarMenu(
+    #     "Scale Up",
+    #     tabPanel(
+    #         "Shiny modules",
+    #         tabsetPanel(
+    #             type = "tabs",
+    #             tabPanel("What are modules?"),
+    #             tabPanel("PCA"),
+    #             tabPanel("Time-series")
+    #         )
+    #     )
+    # )
 )
 
 
 # Server ----
+message("loading server")
 server <- function(input, output, session) {
     # * Basics ----
     output$scatter_plot <- renderPlot({
@@ -81,7 +122,6 @@ output$click_info <- renderPrint({
         )
     })
 
-
     # * Images ----
     output$erat_img <- renderImage(
         {
@@ -105,45 +145,173 @@ output$click_info <- renderPrint({
 
     # * Faceted plots ----
     output$exoplanets_plot <- renderPlot({
-        exoplanets |>
-            dplyr::filter(
-                discoverymethod %in% c("Transit", "Radial Velocity", "Transit Timing Variations", "Microlensing")
-            ) |>
-            ggplot() +
-            geom_point(
-                aes(
-                    x = ra,
-                    y = dec,
-                    size = pl_bmassj
-                ),
-                shape = 21
-            ) +
-            facet_wrap(~discoverymethod, nrow=4) +
-            theme(legend.position = "none") +
-            scale_x_continuous(limits = c(0, 360), labels = \(x){
-                sprintf("%s°", x)
-            }) +
-            scale_y_continuous(limits = c(-90, 90), labels = \(x){
-                sprintf("%s°", x)
-            }) +
-            labs(
-                x = "Right Ascension",
-                y = "Declination"
-                # title = "Exoplanets discovered by Transit, Radial Velocity, Transit Timing Variations, and Microlensing"
-            )
+        if (input$show_bg) {
+            p <- exoplanets |>
+                ggplot() +
+                ggpubr::background_image(image) +
+                geom_point(
+                    aes(
+                        x = ra_xaxis,
+                        y = dec,
+                        size = pl_bmassj
+                        # alpha = pl_bmassj
+                    ),
+                    color = "white",
+                    shape = 22
+                ) +
+                facet_wrap(~discoverymethod, nrow = 4, strip.position = "left") +
+                theme(legend.position = "none") +
+                scale_x_continuous(
+                    limits = c(-180, 180),
+                    breaks = seq(-180, 180, 30),
+                    labels = \(x){
+                        sprintf("%sH", x / 15)
+                    }
+                ) +
+                scale_y_continuous(
+                    limits = c(-90, 90),
+                    labels = \(x){
+                        sprintf("%s°", x)
+                    }
+                ) +
+                labs(
+                    x = "Right Ascension",
+                    y = "Declination"
+                )
+        } else {
+            p <- exoplanets |>
+                dplyr::filter(
+                    discoverymethod %in% c("Transit", "Radial Velocity", "Transit Timing Variations", "Microlensing")
+                ) |>
+                ggplot() +
+                geom_point(
+                    aes(
+                        x = ra_xaxis,
+                        y = dec,
+                        size = pl_bmassj
+                        # alpha = pl_bmassj
+                    ),
+                    shape = 22
+                ) +
+                facet_wrap(~discoverymethod, nrow = 4, strip.position = "left") +
+                theme(legend.position = "none") +
+                scale_x_continuous(limits = c(-180, 180), breaks = seq(-180, 180, 30), labels = \(x){
+                    sprintf("%sH", x / 15)
+                }) +
+                scale_y_continuous(limits = c(-90, 90), labels = \(x){
+                    sprintf("%s°", x)
+                }) +
+                labs(
+                    x = "Right Ascension",
+                    y = "Declination"
+                )
+        }
+        p
     })
-    # output$spacex_click_info <- renderPrint({
-    #     str(isolate(input$spacex_click))
-    # })
+
     output$exoplanets_dblclick_info <- renderPrint({
         str(input$exoplanets_dblclick)
     })
-    # output$spacex_hover_info <- renderPrint({
-    #     str(input$spacex_hover)
-    # })
-    # output$spacex_brush_info <- renderPrint({
-    #     str(input$spacex_brush)
-    # })
+
+    # * Lookup ----
+    output$lookup_plot <- renderPlot({
+        symbols(
+            x = meteorites$reclong,
+            y = meteorites$reclat,
+            circles = log(meteorites$mass_g + 1),
+            xlab = "Longitude",
+            ylab = "Latitude",
+            inches = 0.07,
+            fg = "#0c4743",
+            bg = rgb(255, 255, 255, 50, maxColorValue = 255),
+            xlim = c(-180, 180),
+            axes = FALSE
+        )
+        axis(side = 1, at = axTicks(1), labels = sprintf("%s°", axTicks(1)))
+        axis(side = 2, at = axTicks(2), labels = sprintf("%s°", axTicks(2)))
+    })
+
+    output$table_clicked_points <- reactable::renderReactable({
+        res <- nearPoints(
+            df = meteorites,
+            coordinfo = input$lookup_click,
+            xvar = "reclong",
+            yvar = "reclat",
+            threshold = input$max_distance,
+            maxpoints = input$max_points,
+            addDist = TRUE
+        )
+        res$dist_ <- round(res$dist_, 1)
+
+        reactable::reactable(
+            res,
+            compact = TRUE,
+            searchable = FALSE,
+            filterable = FALSE,
+            bordered = TRUE,
+            defaultPageSize = 5
+        )
+    })
+    output$lookup_click_UIcode <- renderUI({
+        code_joined <- '
+reactable::renderReactable({
+    nearPoints(
+        df = meteorites,
+        brush = input$lookup_click,
+        xvar = "reclong",
+        yvar = "reclat",
+        threshold = input$max_distance,
+        maxpoints = input$max_points,
+        addDist = TRUE
+    )
+})'
+        tags$pre(
+            tags$code(
+                HTML(code_joined)
+            )
+        )
+    })
+
+    output$table_brushed_points <- reactable::renderReactable({
+        res <- brushedPoints(
+            df = meteorites,
+            brush = input$lookup_brush,
+            xvar = "reclong",
+            yvar = "reclat"
+        )
+
+        reactable::reactable(
+            res,
+            compact = TRUE,
+            searchable = FALSE,
+            filterable = FALSE,
+            bordered = TRUE,
+            defaultPageSize = 5
+        )
+    })
+
+    output$lookup_brush_UIcode <- renderUI({
+        code_joined <- '
+reactable::renderReactable({
+    brushedPoints(
+        df = meteorites,
+        brush = input$lookup_brush,
+        xvar = "reclong",
+        yvar = "reclat"
+    )
+})'
+        tags$pre(
+            tags$code(
+                HTML(code_joined)
+            )
+        )
+    })
+
+    # * Time-series ----
+    ts_server("ts")
+
+    # * Scatter ----
+    scatter_server("scatter")
 }
 
 shinyApp(ui = ui, server = server)
