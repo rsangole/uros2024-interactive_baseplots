@@ -73,7 +73,9 @@ ts_plotter <- function(
 symbolsChart <- function(
     values,
     col = rep("black", length(values)),
-    bar_width = round(.10 * max(values)), shape = "squares", border = "white") {
+    bar_width = round(.10 * max(values)),
+    shape = "squares",
+    border = "white") {
     max_val <- max(values)
     padding <- .15 * bar_width
 

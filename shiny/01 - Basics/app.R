@@ -34,8 +34,6 @@ image <- jpeg::readJPEG(here::here("shiny/01 - Basics/images/starmap_2020_4k_pri
 message("loading UI")
 ui <- navbarPage(
     "Interactivity with Base R",
-    tabPanel("Intro"),
-    tabPanel("Motivation"),
     navmenu_fundamentals(),
     navbarMenu(
         "In Action",
@@ -48,18 +46,6 @@ ui <- navbarPage(
             scatter_UI("scatter")
         )
     )
-    # navbarMenu(
-    #     "Scale Up",
-    #     tabPanel(
-    #         "Shiny modules",
-    #         tabsetPanel(
-    #             type = "tabs",
-    #             tabPanel("What are modules?"),
-    #             tabPanel("PCA"),
-    #             tabPanel("Time-series")
-    #         )
-    #     )
-    # )
 )
 
 

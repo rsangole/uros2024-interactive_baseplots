@@ -78,7 +78,8 @@ ts_server <- function(id) {
             )
 
             arrow_df <- shiny::reactive({
-                arrow::open_dataset(here::here("data/arrow"))
+                arrow::open_dataset(here::here("data/arrow")) |>
+                    dplyr::select(ds, value, tag, anomaly, grp)
             })
 
             filtered_data <- shiny::eventReactive(input$btn_selectgrp, {

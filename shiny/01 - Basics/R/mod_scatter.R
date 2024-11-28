@@ -2,40 +2,66 @@ scatter_UI <- function(id) {
     ns <- NS(id)
     tabPanel(
         title = "Plot",
-        shiny::sidebarLayout(
-            sidebarPanel = shiny::sidebarPanel(
-                width = 2,
-                tagList(
-                    shinyWidgets::pickerInput(
-                        inputId = ns("insp_cat"),
-                        label = "Inspection category",
-                        choices = c("COMPLAINT", "PERMIT", "PERIODIC", "REGISTRATION"),
-                        selected = "PERMIT",
-                        options = shinyWidgets::pickerOptions(
-                            liveSearch = TRUE,
-                            actionsBox = TRUE,
-                            size = 10,
-                            selectedTextFormat = "count > 3"
+        fluidPage(
+            shiny::sidebarLayout(
+                sidebarPanel = shiny::sidebarPanel(
+                    width = 2,
+                    tagList(
+                        shinyWidgets::pickerInput(
+                            inputId = ns("insp_cat"),
+                            label = "Inspection category",
+                            choices = c("COMPLAINT", "PERMIT", "PERIODIC", "REGISTRATION"),
+                            selected = "PERMIT",
+                            options = shinyWidgets::pickerOptions(
+                                liveSearch = TRUE,
+                                actionsBox = TRUE,
+                                size = 10,
+                                selectedTextFormat = "count > 3"
+                            ),
+                            multiple = TRUE
                         ),
-                        multiple = TRUE
-                    ),
-                    shinyWidgets::actionBttn(
-                        inputId = ns("btn_selectgrp"),
-                        label = "Select Group",
-                        style = "material-flat",
-                        color = "primary",
-                        size = "xs"
-                    ),
-                    shiny::tableOutput(outputId = ns("metatable"))
-                )
-                # )
-            ),
-            mainPanel = shiny::mainPanel(
-                width = 10,
-                tagList(
-                    shiny::uiOutput(ns("tsplot_ui"), inline = T),
-                    shiny::uiOutput(ns("tsplot_zoomed_ui"), inline = T),
-                    shiny::uiOutput(ns("symchart"))
+                        shinyWidgets::actionBttn(
+                            inputId = ns("btn_selectgrp"),
+                            label = "Select Group",
+                            style = "material-flat",
+                            color = "primary",
+                            size = "xs"
+                        ),
+                        br(),
+                        hr(),
+                        shiny::tableOutput(outputId = ns("metatable"))
+                    )
+                    # )
+                ),
+                mainPanel = shiny::mainPanel(
+                    width = 10,
+                    fluidRow(
+                        column(
+                            width = 4,
+                            shiny::uiOutput(ns("xy_ui"), inline = T)
+                        ),
+                        column(
+                            width = 4,
+                            shiny::uiOutput(ns("xy_zoom_ui"), inline = T)
+                        ),
+                        column(
+                            width = 4,
+                            shiny::plotOutput(ns("plot_symchart"))
+                        )
+                    )
+                    # fluidRow(
+                    #     column(
+                    #         width = 12,
+                    #         shiny::plotOutput(ns("plot_symchart"))
+                    #     )
+                    # )
+                    # bslib::page_fluid(
+                    #     bslib::layout_columns(
+                    # card(shiny::uiOutput(ns("xy_ui"), inline = T)),
+                    # card(shiny::uiOutput(ns("xy_zoom_ui"), inline = T))
+                    #     ),
+                    #     shiny::plotOutput(ns("plot_symchart"))
+                    # )
                 )
             )
         )
@@ -58,9 +84,10 @@ scatter_server <- function(id) {
                     dplyr::collect()
             })
 
-            output$plot_ts <- shiny::renderPlot(
+            output$plot_xy <- shiny::renderPlot(
                 {
-                    dat <- filtered_data()
+                    dat <- filtered_data() #|>
+                    # slice_sample(n = 20e3)
                     legend_dat <- dat |>
                         distinct(inspection_status, inspection_status_color)
 
@@ -70,43 +97,45 @@ scatter_server <- function(id) {
                         dat$latitude,
                         xlab = "Longitude",
                         ylab = "Latitude",
-                        pch = 19,
-                        col = dat$inspection_status_color
+                        pch = 1,
+                        cex = 0.5,
+                        col = scales::alpha(I("black"), 0.05) # I("gray")
+                        # col = dat$inspection_status_color
                     )
-                    legend(
-                        "topleft",
-                        legend = legend_dat$inspection_status,
-                        col = legend_dat$inspection_status_color,
-                        bg = "white",
-                        lwd = 2
-                    )
+                    # legend(
+                    #     "topleft",
+                    #     legend = legend_dat$inspection_status,
+                    #     col = legend_dat$inspection_status_color,
+                    #     bg = "white",
+                    #     lwd = 2
+                    # )
                 },
                 res = 65
             )
 
-            #
-            output$tsplot_ui <- shiny::renderUI({
+            output$xy_ui <- shiny::renderUI({
                 shiny::plotOutput(
-                    ns("plot_ts"),
+                    ns("plot_xy"),
                     brush = brushOpts(
                         id = ns("user_brush"),
                         direction = input$brush_direction # "xy"
                     ),
-                    dblclick = ns("user_dblclick"),
-                    height = "700px"
+                    dblclick = ns("user_dblclick")
+                    # height = "400px",
+                    # width = "400px"
                 )
             })
 
-            output$tsplot_zoomed_ui <- shiny::renderUI({
+            output$xy_zoom_ui <- shiny::renderUI({
                 shiny::plotOutput(
-                    ns("plot_tszoomed"),
-                    brush = brushOpts(
-                        id = ns("user_brush_zoomed"),
-                        direction = input$brush_direction
-                    ),
-                    dblclick = ns("user_dblclick_zoomed"),
-                    height = "400px",
-                    width = "400px"
+                    ns("plot_xy_zoom")
+                    # brush = brushOpts(
+                    #     id = ns("user_brush_zoomed"),
+                    #     direction = input$brush_direction
+                    # ),
+                    # dblclick = ns("user_dblclick_zoomed")
+                    # height = "400px",
+                    # width = "400px"
                 )
             })
 
@@ -119,10 +148,15 @@ scatter_server <- function(id) {
                 )
             })
 
-            output$plot_tszoomed <- shiny::renderPlot(
+            output$plot_xy_zoom <- shiny::renderPlot(
                 {
-                    shiny::req(selectedPoints())
+                    # shiny::req(selectedPoints())
                     dat <- selectedPoints()
+
+                    if (nrow(dat) == 0) {
+                        return(NULL)
+                    }
+
                     legend_dat <- dat |>
                         distinct(inspection_status, inspection_status_color)
 
@@ -132,7 +166,7 @@ scatter_server <- function(id) {
                         dat$latitude,
                         xlab = "Longitude",
                         ylab = "Latitude",
-                        pch = 20,
+                        pch = 1,
                         col = dat$inspection_status_color,
                         asp = 1
                     )
@@ -141,21 +175,26 @@ scatter_server <- function(id) {
                         legend = legend_dat$inspection_status,
                         col = legend_dat$inspection_status_color,
                         bg = "white",
-                        lwd = 2
+                        pch = 1
                     )
                 },
                 res = 65
             )
 
-            output$symchart <- shiny::renderPlot({
+            output$plot_symchart <- shiny::renderPlot({
                 dat <- selectedPoints() |>
-                    dplyr::count(violation_status) |>
-                    dplyr::mutate(floorn = floor(n / 10))
-                print(dat[["floorn"]])
+                    dplyr::count(inspection_status) |>
+                    dplyr::mutate(cat_pc = ceiling(100 * n / sum(n))) |>
+                    arrange(inspection_status)
+                print(dat)
+                legend_dat <- selectedPoints() |>
+                    distinct(inspection_status, inspection_status_color) |>
+                    arrange(inspection_status)
+                print(legend_dat)
                 symbolsChart(
-                    dat[["floorn"]],
-                    bar_width = 10,
-                    col = c("red", "blue", "green", "yellow")
+                    dat[["cat_pc"]],
+                    # bar_width = 20,
+                    col = legend_dat$inspection_status_color
                 )
             })
 

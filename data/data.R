@@ -166,9 +166,54 @@ violations <- arrow::open_dataset(here::here("data/violations.arrow/")) |>
 violations
 
 violations |>
-    dplyr::select(
-        violation_status,
-        inspection_status,
-        latitude,
-        longitude
+    group_by(department_bureau,inspection_status, violation_status) |>
+    dplyr::count() |>
+    dplyr::filter(violation_status == "OPEN") |>
+    collect() |>
+    arrange(-n) -> n_dept
+n_dept
+
+
+n_yaxis <- length(unique(n_dept$department_bureau)))
+
+par(mfrow = c(, 1), mar = c(1, 20, 0, 1), oma = c(2, 2, 2, 2))
+for (i in 1:n_yaxis) {
+
+    # curr <- occs[occs$category == n_dept[i, "category"], ]
+    stripchart(
+        n_dept[i, "n"],
+        method = "overplot",
+        pch = 19,
+        col = "#000000b6",
+        cex = 2, 
+        xlim = c(0, max(n_dept$n)), 
+        axes = FALSE
     )
+    mtext(n_dept[i, "department_bureau"], 2, las = 1, cex = 1)
+}
+
+
+dt <- violations |>
+    # dplyr::filter(inspection_category %in% input$insp_cat) |>
+    dplyr::select(department_bureau, violation_status, inspection_status, latitude, longitude, inspection_status_color) |>
+    dplyr::collect()
+dt
+
+dt |>
+    dplyr::filter(inspection_status == "FAILED") |>
+    mutate(
+        longitude = round(longitude, 2),
+        latitude = round(latitude, 2)
+    ) |>
+    group_by(longitude, latitude) |>
+    count() -> count_failed_dt
+count_failed_dt
+
+library(ggplot2)
+
+count_failed_dt |>
+    ggplot( aes(x =longitude, y =  latitude, size = n^2)) +
+    geom_point(color = "#7A0018", alpha = 0.4) +
+    theme_void() +
+    theme(legend.position = "none") +
+    scale_size_area(max_size = 15)
