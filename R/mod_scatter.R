@@ -43,11 +43,11 @@ scatter_UI <- function(id) {
                         column(
                             width = 4,
                             shiny::uiOutput(ns("xy_zoom_ui"), inline = T)
-                        ),
-                        column(
-                            width = 4,
-                            shiny::plotOutput(ns("plot_symchart"))
                         )
+                        # column(
+                        #     width = 4,
+                        #     shiny::plotOutput(ns("plot_symchart"))
+                        # )
                     )
                     # fluidRow(
                     #     column(
