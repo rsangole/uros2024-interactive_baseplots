@@ -1,30 +1,12 @@
-ts_UI <- function(id) {
+ts_UI <- function(id, title = "Some title") {
     ns <- NS(id)
-    nav_panel(
-        title = "Plot",
+    fluidPage(
+        h4(title),
         shiny::sidebarLayout(
             sidebarPanel = shiny::sidebarPanel(
                 width = 3,
                 tagList(
-                    # fluidPage(
-                    #     tags$style(
-                    #         type = "text/css",
-                    #         ".selectize-input {font-size: 13px; line-height: 13px;}
-                    #                                                 .selectize-dropdown { font-size: 13px; line-height: 13px; } .filter-option-inner-inner {font-size: 13px; line-height: 13px;} .shiny-date-range-input {font-size: 13px; line-height: 13px;}"
-                    #     ),
-                    shinyWidgets::pickerInput(
-                        inputId = ns("selected_grps"),
-                        label = "Group",
-                        choices = paste("Group", 1:64),
-                        selected = "Group 1",
-                        options = shinyWidgets::pickerOptions(
-                            liveSearch = TRUE,
-                            actionsBox = TRUE,
-                            size = 10,
-                            selectedTextFormat = "count > 3"
-                        ),
-                        multiple = TRUE
-                    ),
+                    uiOutput(ns("pickerUI")),
                     shinyWidgets::actionBttn(
                         inputId = ns("btn_selectgrp"),
                         label = "Select Group",
@@ -37,10 +19,14 @@ ts_UI <- function(id) {
                         inputId = ns("labeler_chkbox_plotopts"),
                         label = "",
                         choices = c(
-                            # "Show Anomalies",
+                            "Show Anomalies",
                             "Show Legend"
                         ),
                         status = "danger"
+                    ),
+                    radioButtons(ns("brush_direction"),
+                        "Brush direction", c("xy", "x"),
+                        inline = TRUE
                     ),
                     shiny::tableOutput(outputId = ns("labeler_metatable"))
                 )
@@ -49,18 +35,9 @@ ts_UI <- function(id) {
             mainPanel = shiny::mainPanel(
                 width = 9,
                 tagList(
-                    shiny::plotOutput(
-                        ns("labeler_plot_tsplot"),
-                        brush = brushOpts(
-                            id = ns("user_brush")
-                            # direction = plotopts$brush_direction
-                        ),
-                        dblclick = ns("user_dblclick"),
-                        height = "390px"
-                    ),
-                    # shiny::uiOutput(ns("tsplot"), inline = T),
-                    shiny::uiOutput(ns("tsplot_zoomed"), inline = T)
-                    # DT::dataTableOutput(outputId = "DT_selectionpreview")
+                    shiny::uiOutput(ns("tsplot_ui"), inline = T),
+                    shiny::uiOutput(ns("tsplot_zoomed_ui"), inline = T),
+                    reactable::reactableOutput(ns("dt_selectedpoints"))
                 )
             )
         )
@@ -69,104 +46,113 @@ ts_UI <- function(id) {
 
 
 
-ts_server <- function(id) {
+ts_server <- function(
+    id,
+    arrow_ds_loc = here::here("data/arrow")) {
     ns <- NS(id)
     moduleServer(
         id,
         function(input, output, session) {
-            metadata <- shiny::reactiveValues(
-                tag_values = NULL,
-                tag_choices = NULL,
-                total_pts = NULL,
-                total_grps = NULL,
-                count_existing_anomalies = NULL,
-                grp_unique_list = NULL,
-                col_list = NULL,
-                tag_selected = NULL,
-                grp_selected = NULL,
-                tag_color = NULL,
-                pts_selected_grps = NULL
-            )
-
-            plotopts <- shiny::reactiveValues(
-                # labeler_chkbox_plotopts = c("Show Legend"),
-                brush_direction = "xy",
-                brush_direction_zoomed = "xy"
-            )
-
             arrow_df <- shiny::reactive({
-                arrow::open_dataset("data/arrow")
+                arrow::open_dataset(arrow_ds_loc)
             })
+
+            grp_unique_list <- shiny::reactive({
+                arrow_df() |>
+                    dplyr::distinct(grp) |>
+                    dplyr::arrange(grp) |>
+                    dplyr::pull()
+            })
+
+
+            output$pickerUI <- shiny::renderUI({
+                shinyWidgets::pickerInput(
+                    inputId = ns("selected_grps"),
+                    label = "Select Group(s)",
+                    choices = grp_unique_list(),
+                    # selected = metadata$grp_selected,
+                    multiple = TRUE,
+                    options = list(
+                        `actions-box` = TRUE,
+                        `selected-text-format` = "count > 3"
+                    )
+                )
+            })
+
+            output$tag_pickerUI <- shiny::renderUI({
+                shinyWidgets::pickerInput(
+                    inputId = ns("selected_tags"),
+                    label = "Select Tag(s)",
+                    choices = tag_choices()$tags,
+                    # selected = metadata$grp_selected,
+                    multiple = TRUE,
+                    options = list(
+                        `actions-box` = TRUE,
+                        `selected-text-format` = "count > 3"
+                    )
+                )
+            })
+
+            tag_choices <- shiny::reactiveVal()
 
             filtered_data <- shiny::eventReactive(input$btn_selectgrp, {
-                out <- arrow_df() |>
-                    dplyr::filter(grp %in% input$selected_grps) |>
-                    dplyr::collect() |>
-                    dplyr::arrange(grp, ds)
-
-                metadata$tag_choices <- out |>
+                tags <- arrow_df() |>
                     dplyr::distinct(tag) |>
-                    dplyr::filter(tag != "") |>
+                    dplyr::arrange(tag) |>
                     dplyr::pull()
 
-                out
+                tag_df <- dplyr::tibble(
+                    tag = tags,
+                    tag_color = RColorBrewer::brewer.pal(length(tags), "Set1")
+                )
+                tag_choices(tag_df)
+
+                arrow_df() |>
+                    dplyr::filter(grp %in% input$selected_grps) |>
+                    dplyr::collect() |>
+                    dplyr::arrange(grp, ds) |>
+                    dplyr::left_join(tag_df, by = "tag")
             })
 
-            output$labeler_plot_tsplot <- shiny::renderPlot(
+            output$plot_ts <- shiny::renderPlot(
                 {
                     dat <- filtered_data()
                     par(mar = c(3, 2, 0.2, 0.2)) # (bottom, left, top, right)
                     ts_plotter(
                         dat = dat,
-                        plotopts = input$labeler_chkbox_plotopts
-                        # grp_unique_list = input$selected_grps
+                        plotopts = input$labeler_chkbox_plotopts,
+                        tag_choices_df = tag_choices()
                     )
                 },
                 res = 65
             )
 
-            # output$tsplot <- shiny::renderUI({
-            #     # shinycssloaders::withSpinner(
-            #     shiny::plotOutput(
-            #         ns("labeler_plot_tsplot"),
-            #         brush = brushOpts(
-            #             id = ns("user_brush"),
-            #             direction = plotopts$brush_direction
-            #         ),
-            #         dblclick = ns("user_dblclick"),
-            #         height = "390px"
-            #     )
-            #     # )
-            # })
-
-            output$tsplot_zoomed <- shiny::renderUI({
-                # shinycssloaders::withSpinner(
+            output$tsplot_ui <- shiny::renderUI({
                 shiny::plotOutput(
-                    ns("labeler_tsplot_zoomed"),
+                    ns("plot_ts"),
+                    brush = brushOpts(
+                        id = ns("user_brush"),
+                        direction = input$brush_direction # "xy"
+                    ),
+                    dblclick = ns("user_dblclick"),
+                    height = "390px"
+                )
+            })
+
+            output$tsplot_zoomed_ui <- shiny::renderUI({
+                if (nrow(selectedPoints()) == 0 | is.null(selectedPoints())) {
+                    return(NULL)
+                }
+
+                shiny::plotOutput(
+                    ns("plot_tszoomed"),
                     brush = brushOpts(
                         id = ns("user_brush_zoomed"),
-                        direction = plotopts$brush_direction_zoomed
+                        direction = input$brush_direction
                     ),
                     dblclick = ns("user_dblclick_zoomed"),
                     height = "390px"
                 )
-                # )
-            })
-
-            shiny::observeEvent(input$user_dblclick, {
-                if (plotopts$brush_direction == "xy") {
-                    plotopts$brush_direction <- "x"
-                } else {
-                    plotopts$brush_direction <- "xy"
-                }
-            })
-
-            shiny::observeEvent(input$user_dblclick_zoomed, {
-                if (plotopts$brush_direction_zoomed == "xy") {
-                    plotopts$brush_direction_zoomed <- "x"
-                } else {
-                    plotopts$brush_direction_zoomed <- "xy"
-                }
             })
 
             selectedPoints <- shiny::reactive({
@@ -178,13 +164,23 @@ ts_server <- function(id) {
                 )
             })
 
-            output$labeler_tsplot_zoomed <- shiny::renderPlot(
+            selectedPoints_zoomed <- shiny::reactive({
+                shiny::brushedPoints(
+                    df = selectedPoints(),
+                    brush = input$user_brush_zoomed,
+                    xvar = "ds",
+                    yvar = "value"
+                )
+            })
+
+            output$plot_tszoomed <- shiny::renderPlot(
                 {
                     shiny::req(selectedPoints())
                     par(mar = c(3, 2, 0.2, 0.2)) # (bottom, left, top, right)
                     ts_plotter(
                         dat = selectedPoints(),
-                        plotopts = input$labeler_chkbox_plotopts
+                        plotopts = input$labeler_chkbox_plotopts,
+                        tag_choices_df = tag_choices()
                     )
                 },
                 res = 65
@@ -193,6 +189,7 @@ ts_server <- function(id) {
             output$labeler_metatable <- shiny::renderTable(
                 {
                     shiny::req(filtered_data())
+                    shiny::req(grp_unique_list())
                     tibble::tibble(
                         Parameter = c(
                             "# Groups",
@@ -200,7 +197,7 @@ ts_server <- function(id) {
                             "# Pts Below"
                         ),
                         Value = c(
-                            sprintf("%s/%s", length(input$selected_grps), length(metadata$grp_unique_list)),
+                            sprintf("%s/%s", length(input$selected_grps), length(grp_unique_list())),
                             scales::label_comma()(nrow(filtered_data())),
                             scales::label_comma()(nrow(selectedPoints()))
                         )
@@ -211,33 +208,38 @@ ts_server <- function(id) {
                 bordered = FALSE
             )
 
-            # output$DT_selectionpreview <- DT::renderDT({
-            #     shiny::req(input$user_brush)
-            #     # shiny::req(input$user_brush_zoomed)
-            #     dat <- selectedPoints_zoomed()
-            #     if (nrow(dat) == 0) {
-            #         dat <- selectedPoints()
-            #     }
-            #     DT::datatable(dat,
-            #         autoHideNavigation = T,
-            #         class = "cell-border compact",
-            #         options = list(
-            #             dom = "ft",
-            #             deferRender = TRUE,
-            #             scrollY = 100,
-            #             scroller = TRUE
-            #         ),
-            #         extensions = "Scroller",
-            #         caption = htmltools::tags$caption(
-            #             style = "caption-side: bottom; text-align: center;",
-            #             "", htmltools::em(paste0(dat[, .N], " points selected"))
-            #         )
-            #     ) %>%
-            #         DT::formatDate(
-            #             columns = metadata$col_list$datecol,
-            #             method = "toISOString"
-            #         )
-            # })
+            output$dt_selectedpoints <- reactable::renderReactable({
+                # shiny::req(input$user_brush)
+                # shiny::req(input$user_brush_zoomed)
+                # shiny::req(selectedPoints())
+
+                dat <- selectedPoints_zoomed()
+
+                if (nrow(dat) == 0 | is.null(dat)) {
+                    return(NULL)
+                }
+
+                reactable::reactable(
+                    dat,
+                    compact = TRUE,
+                    searchable = FALSE,
+                    filterable = TRUE,
+                    bordered = TRUE,
+                    defaultPageSize = 5,
+                    columns = list(
+                        ds = reactable::colDef(
+                            name = "Date",
+                            format = reactable::colFormat(
+                                date = TRUE, time = TRUE
+                            )
+                        ),
+                        value = reactable::colDef(
+                            name = "Value",
+                            format = reactable::colFormat(digits = 2, separators = TRUE)
+                        )
+                    )
+                )
+            })
         }
     )
 }

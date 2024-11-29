@@ -217,3 +217,25 @@ count_failed_dt |>
     theme_void() +
     theme(legend.position = "none") +
     scale_size_area(max_size = 15)
+
+
+
+# https://github.com/zhouhaoyi/ETDataset/tree/main
+fread(here::here("data/ETTh1.csv")) |>
+    janitor::clean_names() |>
+    tidyr::pivot_longer(-date, names_to = "grp", values_to = "value") |>
+    dplyr::mutate(tag = "", anomaly = 0) |>
+    dplyr::rename(ds = date) |>
+    dplyr::group_by(grp) |>
+    arrow::write_dataset(here::here("data/ts_et.arrow"))
+
+
+bind_rows(
+fread(here::here("data/Twitter_volume_AAPL.csv")) |>
+    dplyr::mutate(grp = "AAPL", tag = "", anomaly = 0),
+    fread(here::here("data/Twitter_volume_GOOG.csv")) |>
+    dplyr::mutate(grp = "GOOG", tag = "", anomaly = 0)
+) |>
+    dplyr::rename(ds = timestamp) |>
+    dplyr::group_by(grp) |>
+    arrow::write_dataset(here::here("data/ts_twitter.arrow"))
