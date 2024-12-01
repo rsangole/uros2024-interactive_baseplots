@@ -8,6 +8,7 @@ library(ggplot2)
 message("loading code")
 lapply(fs::dir_ls(here::here("R")), source)
 
+
 # Load data ----
 message("loading data")
 meteorites <- data.table::fread(here::here("data/Meteorite_Landings_20241116.csv")) |>
@@ -16,14 +17,14 @@ meteorites <- data.table::fread(here::here("data/Meteorite_Landings_20241116.csv
 comets <- data.table::fread(here::here("data/comets.csv")) |>
     janitor::clean_names()
 exoplanets <- qs2::qs_read(here::here("data/exoplanets.qs2")) |>
-    mutate(
+    dplyr::mutate(
         ra_h = as.numeric(stringr::str_extract(rastr, "\\d{2}(?=h)")),
         ra_m = as.numeric(stringr::str_extract(rastr, "\\d{2}(?=m)")),
         ra_s = as.numeric(stringr::str_extract(rastr, "\\d{2}\\.\\d{1,4}(?=s)")),
         ra_hms = sprintf("%s:%s:%s", ra_h, ra_m, ra_s),
         ra_xaxis = ra - 180
     ) |>
-    arrange(ra_h, ra_m, ra_s) |>
+    dplyr::arrange(ra_h, ra_m, ra_s) |>
     dplyr::filter(
         discoverymethod %in% c("Transit", "Radial Velocity", "Microlensing")
     )
@@ -40,10 +41,6 @@ ui <- navbarPage(
         nav_panel(
             title = "Time-series Analysis",
             ts_UI("ts", "A time-series plot")
-        ),
-        nav_panel(
-            "Scatter",
-            scatter_UI("scatter")
         )
     ),
     navbarMenu(
@@ -53,7 +50,7 @@ ui <- navbarPage(
             tabsetPanel(
                 tabPanel(
                     "Server Load",
-                    ts_UI("ts_server", "")
+                    ts_UI("ts_hourly", "")
                 ),
                 tabPanel(
                     "Electricity Transformer",
@@ -314,13 +311,10 @@ reactable::renderReactable({
     })
 
     # * Time-series ----
-    ts_server("ts", here::here("data/ts_arrow_1"))
-    ts_server("ts_server", here::here("data/ts_arrow_1"))
+    ts_server("ts", here::here("data/ts_hourly_arrow"))
+    ts_server("ts_hourly", here::here("data/ts_hourly_arrow"))
     ts_server("ts_et", here::here("data/ts_et.arrow"))
     ts_server("ts_twitter", here::here("data/ts_twitter.arrow"))
-
-    # * Scatter ----
-    scatter_server("scatter")
 }
 
 shinyApp(ui = ui, server = server)

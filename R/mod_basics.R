@@ -18,24 +18,6 @@ basics_UI <- function(id) {
                     verbatimTextOutput(ns("dblclick_info"))
                 )
             ),
-            # fluidRow(
-            #     column(
-            #         width = 3,
-            #         verbatimTextOutput(ns("click_info"))
-            #     ),
-            #     column(
-            #         width = 3,
-            #         verbatimTextOutput(ns("dblclick_info"))
-            #     ),
-            #     column(
-            #         width = 3,
-            #         verbatimTextOutput(ns("hover_info"))
-            #     ),
-            #     column(
-            #         width = 3,
-            #         verbatimTextOutput(ns("brush_info"))
-            #     )
-            # )
         ),
         nav_panel(title = "Code", "Panel 2 content")
     )
