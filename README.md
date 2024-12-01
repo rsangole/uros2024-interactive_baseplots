@@ -26,7 +26,7 @@ I had the pleasure of talking about this topic at the [2024 uRos conference](htt
 Clone the repository:
 
 ```sh
-git clone git@github.com:rsangole/uros2024-interactive_baseplots.git
+git clone --depth 1 git@github.com:rsangole/uros2024-interactive_baseplots.git
 ```
 
 ### Running the Project in VS Code Using Dev Containers
