@@ -2,12 +2,9 @@
 
 _Nov 27 2024_
 
-This project provides tools for time series analysis and visualization using R and Shiny. It includes data preparation scripts, Shiny modules for interactive visualization, and various datasets.
+I had the pleasure of talking about this topic at the [2024 uRos conference](https://r-project.ro/conference2024-live.html) held in Greece in Nov 2024. I spoke about how very simple tooling in `{shiny}`, combined with `{arrow}` can unlock the capability to develop some very powerful interactive tooling in R. I spoke about how we can be quickly scale up our development using shiny modules.
 
-https://r-project.ro/conference2024.html
-
-https://r-project.ro/conference2024-live.html#Live_images
-
+![I1](./images/uros2024_2.png)
 ![I1](./images/uros2024_1.png)
 
 ## Project Structure
