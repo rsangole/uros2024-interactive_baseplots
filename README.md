@@ -8,7 +8,7 @@ https://r-project.ro/conference2024.html
 
 https://r-project.ro/conference2024-live.html#Live_images
 
-![images/uros2024 1.png]()
+![](images/uros2024 1.png)
 
 ## Project Structure
 
